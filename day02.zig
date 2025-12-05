@@ -1,14 +1,5 @@
 const std = @import("std");
-
-fn splitOnce(comptime T: type, s: []const T, p: T) ?struct { []const T, []const T } {
-    var it = std.mem.splitScalar(T, s, p);
-    const first = it.next().?;
-    const second = it.next().?;
-    if (it.rest().len > 0) {
-        return null;
-    }
-    return .{ first, second };
-}
+const splitOnce = @import("utils.zig").splitOnce;
 
 fn is_invalid(x: u64) bool {
     const digits = std.math.log10_int(x) + 1;
