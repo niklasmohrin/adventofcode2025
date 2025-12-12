@@ -37,14 +37,56 @@ pub const Grid = struct {
     }
 };
 
+pub fn makeUnsigned(comptime T: type) type {
+    return std.meta.Int(.unsigned, @typeInfo(T).int.bits);
+}
+
 pub fn Vec(comptime d: usize, comptime T: type) type {
     return struct {
         const Self = @This();
 
+        const ParseError = error{
+            TooFewCoordinates,
+        };
+
         coords: [d]T,
+
+        pub fn parse(s: []const u8) !Self {
+            var it = std.mem.splitScalar(u8, s, ',');
+            var self: Self = undefined;
+            for (&self.coords) |*c| {
+                c.* = try std.fmt.parseInt(T, it.next() orelse return ParseError.TooFewCoordinates, 10);
+            }
+            return self;
+        }
 
         pub fn x(self: Self) T {
             return self.coords[0];
+        }
+        pub fn y(self: Self) T {
+            return self.coords[1];
+        }
+
+        pub fn add(self: Self, other: Self) Self {
+            var res = self;
+            for (0..d) |i| res.coords[i] += other.coords[i];
+            return res;
+        }
+        pub fn sub(self: Self, other: Self) Self {
+            var res = self;
+            for (0..d) |i| res.coords[i] -= other.coords[i];
+            return res;
+        }
+
+        pub fn abs(self: Self) Vec(d, makeUnsigned(T)) {
+            var res: Vec(d, makeUnsigned(T)) = undefined;
+            for (0..d) |i| res.coords[i] = @abs(self.coords[i]);
+            return res;
+        }
+        pub fn l1(self: Self) makeUnsigned(T) {
+            var res: makeUnsigned(T) = 0;
+            for (self.coords) |c| res += @abs(c);
+            return res;
         }
 
         pub fn distSqr(self: Self, other: Self) T {
@@ -109,4 +151,35 @@ pub fn topK(comptime T: type, comptime k: usize, items: []T) [k]T {
         sorted.appendAssumeCapacity(item);
     }
     return buf[0..k].*;
+}
+
+pub fn Range(comptime T: type) type {
+    return struct {
+        const Self = @This();
+
+        start: T,
+        end: T,
+
+        pub fn init(start: T, end: T) Self {
+            std.debug.assert(start <= end);
+            return .{ .start = start, .end = end };
+        }
+
+        pub fn size(self: Self) makeUnsigned(T) {
+            return @intCast(self.end - self.start);
+        }
+
+        pub fn isEmpty(self: Self) bool {
+            return self.start == self.end;
+        }
+
+        pub fn isSubset(self: Self, other: Self) bool {
+            if (self.isEmpty()) return true;
+            return other.start <= self.start and self.end <= other.end;
+        }
+
+        pub fn contains(self: Self, value: T) bool {
+            return self.start <= value and value < self.end;
+        }
+    };
 }
