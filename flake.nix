@@ -22,6 +22,8 @@
             packages = with pkgs; [
               zig
               zls
+
+              scipopt-scip
             ];
           };
         }
